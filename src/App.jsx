@@ -24,6 +24,7 @@ function App() {
 
       window.cognigyWebchat = chat;
 
+      // Obsługa zmiany tła i koszyka
       chat.registerAnalyticsService((event) => {
         if (
           event.type === "action" &&
@@ -31,8 +32,7 @@ function App() {
           typeof event.payload.payload === "string" &&
           event.payload.payload.match(/^\/.*\.(png|jpg|jpeg|webp)$/i)
         ) {
-          const url = event.payload.payload;
-          setBackgroundUrl(url);
+          setBackgroundUrl(event.payload.payload);
         }
 
         if (
@@ -44,6 +44,25 @@ function App() {
           setShowCart(true);
         }
       });
+
+      // Obsługa custom payload (resize, etc.)
+      chat.client.on("output", (message) => {
+        const payload = message?.data?.payload;
+
+        if (message?.data?.type !== "custom" || !payload?._event) return;
+
+        if (payload._event === "resize_webchat" && typeof payload.width === "number") {
+          const webchatWindow = document.getElementById("webchatWindow");
+          if (webchatWindow) {
+            webchatWindow.style.width = `${payload.width}px`;
+            webchatWindow.style.transition = "width 0.3s ease";
+          }
+        }
+
+        if (payload._event === "background_change" && typeof payload.url === "string") {
+          setBackgroundUrl(payload.url);
+        }
+      });
     };
 
     document.body.appendChild(script);
@@ -52,6 +71,7 @@ function App() {
     };
   }, []);
 
+  // Ekran koszyka na cały ekran
   if (showCart) {
     return (
       <div style={{
@@ -69,36 +89,36 @@ function App() {
         <main style={{ maxWidth: '800px', margin: '0 auto' }}>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {cart.map((item, index) => {
-            const fakePrice = Math.floor(Math.random() * (120 - 40 + 1)) + 40;
-            return (
-              <li
-                key={index}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '1.5rem',
-                  borderBottom: '1px solid #ddd',
-                  paddingBottom: '1rem'
-                }}
-              >
-                <img
-                  src={item.image}
-                  alt={item.title}
+              const fakePrice = Math.floor(Math.random() * (120 - 40 + 1)) + 40;
+              return (
+                <li
+                  key={index}
                   style={{
-                    width: '80px',
-                    height: '80px',
-                    objectFit: 'cover',
-                    marginRight: '1rem'
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '1.5rem',
+                    borderBottom: '1px solid #ddd',
+                    paddingBottom: '1rem'
                   }}
-                />
-                <div>
-                  <strong>{item.title}</strong><br />
-                  Price: {fakePrice} £<br />
-                  Quantity: 1
-                </div>
-              </li>
-            );
-          })}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    style={{
+                      width: '80px',
+                      height: '80px',
+                      objectFit: 'cover',
+                      marginRight: '1rem'
+                    }}
+                  />
+                  <div>
+                    <strong>{item.title}</strong><br />
+                    Price: {fakePrice} £<br />
+                    Quantity: 1
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <h2 style={{ textAlign: 'center' }}>Total: 000 £</h2>
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
@@ -122,6 +142,7 @@ function App() {
     );
   }
 
+  // Widok ze zmiennym tłem
   return (
     <div
       style={{
